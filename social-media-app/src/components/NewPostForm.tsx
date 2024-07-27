@@ -1,21 +1,28 @@
+// NewPostForm.tsx
+import React, { useState, FormEvent, ChangeEvent } from 'react';
+import axios from 'axios';
+import { useUser } from '../components/UserContext';
+
+interface NewPostFormProps {
+  refreshPosts: () => void;
+}
+
 const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }) => {
   const [image, setImage] = useState<string>('');
   const { userId } = useUser();
-  
-  console.log('Current userId:', userId); // Debugging
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     console.log('Form submitted with image:', image, 'and userId:', userId); // Debugging
     if (image.trim() && userId) {
       try {
-        await axios.post('http://localhost:3000/posts', {
+        const response = await axios.post('http://localhost:3000/posts', {
           userId,
           pictureUrl: image,
           likes: 0,
           comments: []
         });
-        console.log('Post added successfully');
+        console.log('Post added response:', response.data); // Debugging
         setImage('');
         refreshPosts(); // Refresh posts after adding a new one
       } catch (error) {
@@ -25,6 +32,7 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
       console.log('Image URL or userId is missing'); // Debugging
     }
   };
+  
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     setImage(e.target.value);
@@ -37,9 +45,10 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
         value={image}
         onChange={handleImageChange}
         placeholder="Image URL"
-        required // Ensure input is not empty
       />
       <button type="submit">Add Post</button>
     </form>
   );
 };
+
+export default NewPostForm;
