@@ -153,7 +153,7 @@ app.post('/posts/:id/like', async (req, res) => {
     console.error('Error adding like:', error);
     res.status(500).json({ error: 'Error adding like' });
   }
-});
+}); 
 
 // Add a comment to a post
 app.post('/posts/:id/comment', async (req, res) => {
