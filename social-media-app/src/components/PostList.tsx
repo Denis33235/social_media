@@ -1,3 +1,4 @@
+// PostList.tsx
 import React from 'react';
 import Post from './Post';
 
@@ -11,7 +12,7 @@ interface PostListProps {
   refreshPosts: () => void;
 }
 
-const PostList: React.FunctionComponent<PostListProps> = ({ posts, refreshPosts }) => {
+const PostList: React.FunctionComponent<PostListProps> = ({ posts = [], refreshPosts }) => {
   return (
     <div className="space-y-4">
       {posts.map((post) => (

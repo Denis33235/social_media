@@ -16,7 +16,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
 
   const handleLike = async () => {
     try {
-      await axios.post(`http://localhost:3000/posts/${post.id}/like`);
+      await axios.post(`http://localhost:3000/posts/${post.id}/like/`);
       refreshPosts();
     } catch (error) {
       console.error('Error adding like:', error);
@@ -31,7 +31,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
     e.preventDefault();
     if (comment.trim()) {
       try {
-        await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment });
+        await axios.post(`http://localhost:3000/posts/${post.id}/comment/`, { text: comment });
         setComment('');
         refreshPosts();
       } catch (error) {

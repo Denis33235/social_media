@@ -1,32 +1,39 @@
+// Login.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useUser } from '../components/UserContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { setUserId } = useUser();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     try {
       const response = await axios.post('http://localhost:3000/login', { email, password });
-      console.log('Login successful:', response.data);
+      setUserId(response.data.userId);
+      // Handle successful login, e.g., navigate to another page
     } catch (error) {
       console.error('Error logging in:', error);
     }
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <div>
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-      <div>
-        <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      </div>
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      <button onClick={handleLogin}>Login</button>
+    </div>
   );
 };
 

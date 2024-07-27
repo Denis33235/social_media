@@ -45,7 +45,7 @@ app.post('/login', async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
-    const token = jwt.sign({ userId: user.id }, '', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id }, 'your_secret_key', { expiresIn: '1h' });
     res.json({ message: 'Login successful', token });
   } catch (error) {
     console.error('Error logging in user:', error);
@@ -81,18 +81,13 @@ app.get('/users/:id', async (req, res) => {
 
 // Create a new post
 app.post('/posts', async (req, res) => {
-  const { userId, pictureUrl, likes = 0, comments = [] } = req.body;
+  const { userId, pictureUrl, likes = 0 } = req.body;
+  console.log('Creating post with:', { userId, pictureUrl, likes }); // Debugging
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
     const postId = result.insertId;
-
-    if (comments.length > 0) {
-      const commentSql = 'INSERT INTO comments (postId, text) VALUES ?';
-      const commentValues = comments.map(comment => [postId, comment]);
-      await db.query(commentSql, [commentValues]);
-    }
-
-    res.status(201).json({ message: 'Post created successfully!' });
+    console.log('Post created with ID:', postId); // Debugging
+    res.status(201).json({ message: 'Post created successfully!', postId });
   } catch (error) {
     console.error('Error creating post:', error);
     res.status(500).json({ error: 'Error creating post' });
