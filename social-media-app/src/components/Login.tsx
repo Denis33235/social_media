@@ -5,13 +5,16 @@ import { useUser } from '../components/UserContext';
 const Login: React.FC = () => {
   const [emailLog, setEmailLog] = useState('');
   const [passwordLog, setPasswordLog] = useState('');
+  const{setUserId}=useUser();
 
   const login = () => {
     axios.post("http://localhost:3000/login", {
       email: emailLog,
       password: passwordLog,
     }).then((response) => {
-      console.log(response.data);
+      if (response.data.userId) {
+        setUserId(response.data.userId);  // Set userId from response
+      }
     }).catch((error) => {
       console.error("Error logging in:", error.response.data.message);
     });

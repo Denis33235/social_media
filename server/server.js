@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 
 const app = express();
@@ -8,7 +9,8 @@ const port = 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json({ limit: '50mb' })); // Increase payload limit for JSON
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // Increase payload limit for URL-encoded data
 
 // Database connection
 const db = mysql.createPool({
@@ -19,12 +21,15 @@ const db = mysql.createPool({
 });
 
 app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  const email = req.body.email;
+  const password = req.body.password;
+
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const [result] = await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
-    res.send({ message: "User registered successfully!" });
+    await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
+    res.send({ message: 'User registered successfully!' });
   } catch (err) {
+    console.error(err);
     res.status(500).send({ err: err.message });
   }
 });
@@ -37,7 +42,7 @@ app.post('/login', async (req, res) => {
       const user = rows[0];
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (isPasswordValid) {
-        res.send({ message: "Login successful!", user });
+        res.send({ message: "Login successful!", userId: user.id });
       } else {
         res.status(400).send({ message: "Wrong email or password" });
       }
@@ -48,6 +53,8 @@ app.post('/login', async (req, res) => {
     res.status(500).send({ err: err.message });
   }
 });
+
+
 
 
 // Get a list of users

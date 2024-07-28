@@ -8,45 +8,9 @@ interface NewPostFormProps {
 
 const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }) => {
   const [file, setFile] = useState<File | null>(null);
-  const { userId } = useUser();
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    console.log('Form submitted with file:', file, 'and userId:', userId); // Debugging
-
-    if (file && userId) {
-      try {
-        // Step 1: Upload the file to the server and get the file URL
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const uploadResponse = await axios.post('http://localhost:3000/posts', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        const fileUrl = uploadResponse.data.url;
-        console.log('File uploaded successfully:', fileUrl); // Debugging
-
-        // Step 2: Create the new post with the file URL
-        const response = await axios.post('http://localhost:3000/posts', {
-          userId,
-          pictureUrl: fileUrl,
-          likes: 0,
-          comments: []
-        });
-        console.log('Post added response:', response.data); // Debugging
-
-        setFile(null);
-        refreshPosts(); // Refresh posts after adding a new one
-      } catch (error) {
-        console.error('Error adding post:', error.response ? error.response.data : error.message); // Improved error handling
-      }
-    } else {
-      console.log('File or userId is missing'); // Debugging
-    }
-  };
+  const [pictureUrl, setPictureUrl] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const {userId}=useUser();
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -54,16 +18,73 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
     }
   };
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          resolve(reader.result as string);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file); // Convert file to base64
+    });
+  };
+
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+
+  if (!file) {
+    setError('Please select a file');
+    return;
+  }
+
+  try {
+    const base64File = await convertFileToBase64(file);
+    console.log('Form submitted with file in Base64:', base64File, 'and userId:', userId);
+
+    // Prepare payload
+    const payload = {
+      file: base64File,
+      userId,
+      pictureUrl,
+    };
+
+    // Make API request
+    const response = await axios.post('http://localhost:3000/posts', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 200) {
+      refreshPosts();
+    } else {
+      setError('Failed to upload file');
+    }
+  } catch (error) {
+    console.error('Error uploading file', error);
+    setError('An error occurred. Please try again.');
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit}>
-      <input
-        type="file"
-        onChange={handleFileChange}
-        accept="image/*"
-      />
+    
+      <div>
+        <label htmlFor="pictureUrl">Picture URL:</label>
+        <input
+          type="text"
+          id="pictureUrl"
+          value={pictureUrl}
+          onChange={(e) => setPictureUrl(e.target.value)}
+        />
+      </div>
       <button type="submit">Add Post</button>
     </form>
   );
 };
 
-export default NewPostForm;
+export default NewPostForm;

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-interface UserContextProps {
+interface UserContextType {
   userId: number | null;
-  setUserId: (id: number) => void;
+  setUserId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
-const UserContext = createContext<UserContextProps | undefined>(undefined);
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<number | null>(null);
@@ -20,7 +20,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 };
