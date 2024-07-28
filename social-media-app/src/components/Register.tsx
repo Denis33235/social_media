@@ -2,31 +2,35 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const Register: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailReg, setEmailReg] = useState('');
+  const [passwordReg, setPasswordReg] = useState('');
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post('http://localhost:3000/register/', { email, password });
-      console.log('Registration successful:', response.data);
-    } catch (error) {
-      console.error('Error registering:', error);
-    }
+  const register = () => {
+    axios.post("http://localhost:3000/register", {
+      email: emailReg,
+      password: passwordReg,
+    }).then((response) => {
+      console.log(response.data);
+    }).catch((error) => {
+      console.error("Error registering:", error.response.data.err);
+    });
   };
 
   return (
-    <form onSubmit={handleRegister}>
-      <div>
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-      <div>
-        <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      </div>
-      <button type="submit">Register</button>
-    </form>
+    <div className='register'>
+      <h1>Register</h1>
+      <input 
+        type="text"
+        onChange={(e) => setEmailReg(e.target.value)}
+        placeholder="Email"
+      />
+      <input 
+        type="password"
+        onChange={(e) => setPasswordReg(e.target.value)}
+        placeholder="Password"
+      />
+      <button onClick={register}>Register</button>
+    </div>
   );
 };
 

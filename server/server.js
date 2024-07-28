@@ -18,39 +18,34 @@ const db = mysql.createPool({
   database: 'social_media',
 });
 
-// Register a new user
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    await db.execute('INSERT INTO users (email, password) VALUES (?, ?)', [email, hashedPassword]);
-    res.status(201).json({ message: 'User registered successfully!' });
-  } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(500).json({ error: 'Error registering user' });
+    const [result] = await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
+    res.send({ message: "User registered successfully!" });
+  } catch (err) {
+    res.status(500).send({ err: err.message });
   }
 });
 
-// Login a user
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  console.log('Login attempt:', { email, password }); // Log the login attempt
   try {
-    const [results] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+    if (rows.length > 0) {
+      const user = rows[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (isPasswordValid) {
+        res.send({ message: "Login successful!", user });
+      } else {
+        res.status(400).send({ message: "Wrong email or password" });
+      }
+    } else {
+      res.status(400).send({ message: "Wrong email or password" });
     }
-    const user = results[0];
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isValidPassword); // Log password validation
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid password' });
-    }
-    const token = jwt.sign({ userId: user.id }, 'your_secret_key', { expiresIn: '1h' });
-    res.json({ message: 'Login successful', token, userId: user.id });
-  } catch (error) {
-    console.error('Error logging in user:', error);
-    res.status(500).json({ error: 'Error logging in user' });
+  } catch (err) {
+    res.status(500).send({ err: err.message });
   }
 });
 

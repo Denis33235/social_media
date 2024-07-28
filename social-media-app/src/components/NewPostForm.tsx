@@ -7,47 +7,63 @@ interface NewPostFormProps {
 }
 
 const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }) => {
-  const [image, setImage] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
   const { userId } = useUser();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with image:', image, 'and userId:', userId); // Debugging
-    
-    if (image.trim() && userId) {
+    console.log('Form submitted with file:', file, 'and userId:', userId); // Debugging
+
+    if (file && userId) {
       try {
+        // Step 1: Upload the file to the server and get the file URL
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const uploadResponse = await axios.post('http://localhost:3000/posts', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const fileUrl = uploadResponse.data.url;
+        console.log('File uploaded successfully:', fileUrl); // Debugging
+
+        // Step 2: Create the new post with the file URL
         const response = await axios.post('http://localhost:3000/posts', {
           userId,
-          pictureUrl: image,
+          pictureUrl: fileUrl,
           likes: 0,
           comments: []
         });
         console.log('Post added response:', response.data); // Debugging
-        setImage('');
+
+        setFile(null);
         refreshPosts(); // Refresh posts after adding a new one
       } catch (error) {
         console.error('Error adding post:', error.response ? error.response.data : error.message); // Improved error handling
       }
     } else {
-      console.log('Image URL or userId is missing'); // Debugging
+      console.log('File or userId is missing'); // Debugging
     }
   };
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setImage(e.target.value);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <input
-        type="text"
-        value={image}
-        onChange={handleImageChange}
-        placeholder="Image URL"
+        type="file"
+        onChange={handleFileChange}
+        accept="image/*"
       />
       <button type="submit">Add Post</button>
     </form>
   );
 };
 
-export default NewPostForm;
+export default NewPostForm;
