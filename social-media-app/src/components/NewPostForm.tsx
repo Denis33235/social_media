@@ -1,4 +1,3 @@
-// NewPostForm.tsx
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import axios from 'axios';
 import { useUser } from '../components/UserContext';
@@ -14,6 +13,7 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     console.log('Form submitted with image:', image, 'and userId:', userId); // Debugging
+    
     if (image.trim() && userId) {
       try {
         const response = await axios.post('http://localhost:3000/posts', {
@@ -32,7 +32,6 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
       console.log('Image URL or userId is missing'); // Debugging
     }
   };
-  
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     setImage(e.target.value);

@@ -2,7 +2,6 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = 3000;
@@ -35,6 +34,7 @@ app.post('/register', async (req, res) => {
 // Login a user
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('Login attempt:', { email, password }); // Log the login attempt
   try {
     const [results] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
     if (results.length === 0) {
@@ -42,16 +42,18 @@ app.post('/login', async (req, res) => {
     }
     const user = results[0];
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isValidPassword); // Log password validation
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
     const token = jwt.sign({ userId: user.id }, 'your_secret_key', { expiresIn: '1h' });
-    res.json({ message: 'Login successful', token });
+    res.json({ message: 'Login successful', token, userId: user.id });
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(500).json({ error: 'Error logging in user' });
   }
 });
+
 
 // Get a list of users
 app.get('/users', async (req, res) => {
@@ -64,25 +66,10 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Get a specific user's details
-app.get('/users/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [results] = await db.execute('SELECT id, email FROM users WHERE id = ?', [id]);
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json(results[0]);
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ error: 'Error fetching user' });
-  }
-});
-
 // Create a new post
 app.post('/posts', async (req, res) => {
   const { userId, pictureUrl, likes = 0 } = req.body;
-  console.log('Creating post with:', { userId, pictureUrl, likes }); // Debugging
+  console.log('Creating post with:', { userId, pictureUrl, likes }); 
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
     const postId = result.insertId;
@@ -101,8 +88,9 @@ app.get('/posts', async (req, res) => {
     const postIds = postResults.map(post => post.id);
 
     if (postIds.length > 0) {
-      const [commentResults] = await db.execute('SELECT * FROM comments WHERE postId IN (?)', [postIds]);
-
+      const placeholders = postIds.map(() => '?').join(',');
+      const query = `SELECT * FROM comments WHERE postId IN (${placeholders})`;
+      const [commentResults] = await db.execute(query, postIds);
       const postsWithComments = postResults.map(post => {
         post.comments = commentResults
           .filter(comment => comment.postId === post.id)
@@ -120,26 +108,6 @@ app.get('/posts', async (req, res) => {
   }
 });
 
-// Get a specific post by ID
-app.get('/posts/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [postResults] = await db.execute('SELECT * FROM posts WHERE id = ?', [id]);
-    if (postResults.length === 0) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-
-    const [commentResults] = await db.execute('SELECT * FROM comments WHERE postId = ?', [id]);
-    const post = postResults[0];
-    post.comments = commentResults.map(comment => comment.text);
-
-    res.json(post);
-  } catch (error) {
-    console.error('Error fetching post:', error);
-    res.status(500).json({ error: 'Error fetching post' });
-  }
-});
-
 // Add a like to a post
 app.post('/posts/:id/like', async (req, res) => {
   const { id } = req.params;
@@ -153,7 +121,7 @@ app.post('/posts/:id/like', async (req, res) => {
     console.error('Error adding like:', error);
     res.status(500).json({ error: 'Error adding like' });
   }
-}); 
+});
 
 // Add a comment to a post
 app.post('/posts/:id/comment', async (req, res) => {
