@@ -5,11 +5,17 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 
+
 const app = express();
 const port = 3000;
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  credentials: true,
+  optionSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
@@ -18,7 +24,7 @@ app.use(session({
   secret: 'your_secret_key', // Change this to a secure key
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: true } // Set to true if using HTTPS
+  cookie: { secure: false }, // Set to false for HTTP (local development)
 }));
 
 // Database connection
@@ -66,12 +72,22 @@ app.post('/login', async (req, res) => {
 
 // Middleware to protect routes
 const requireAuth = (req, res, next) => {
-  if (req.session.userId) {
+  if (req.session && req.session.userId) {
     next();
   } else {
     res.status(401).send({ message: 'Unauthorized' });
   }
 };
+
+// Route to check if session is set (for debugging)
+app.get('/check-session', (req, res) => {
+  if (req.session.userId) {
+    res.send({ userId: req.session.userId });
+  } else {
+    res.status(401).send({ message: 'Unauthorized' });
+    console.log("heee")
+  }
+});
 
 // Get a list of users
 app.get('/users', async (req, res) => {
@@ -97,6 +113,24 @@ app.post('/posts', async (req, res) => {
     res.status(500).json({ error: 'Error creating post' });
   }
 });
+
+app.delete('/posts/:id', async (req, res) => {
+  const postId = req.params.id;
+
+  try {
+    const [result] = await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res.status(200).json({ message: 'Post deleted successfully!' });
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({ error: 'Error deleting post' });
+  }
+});
+
 // Get a list of posts
 app.get('/posts', async (req, res) => {
   try {
@@ -140,17 +174,32 @@ app.post('/posts/:id/like', requireAuth, async (req, res) => {
 });
 
 // Add a comment to a post
+// app.post('/posts/:id/comment', requireAuth, async (req, res) => {
+//   const { id } = req.params;
+//   const { text } = req.body;
+//   try {
+//     await db.execute('INSERT INTO comments (postId, text) VALUES (?, ?)', [id, text]);
+//     res.status(201).json({ message: 'Comment added successfully!' });
+//   } catch (error) {
+//     console.error('Error adding comment:', error);
+//     res.status(500).json({ error: 'Error adding comment' });
+//   }
+// });
 app.post('/posts/:id/comment', requireAuth, async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // id here refers to the postId
   const { text } = req.body;
+
   try {
-    await db.execute('INSERT INTO comments (postId, text) VALUES (?, ?)', [id, text]);
-    res.status(201).json({ message: 'Comment added successfully!' });
+    const [result] = await db.execute('INSERT INTO comments (postId, text) VALUES (?, ?)', [id, text]);
+    const commentId = result.insertId;
+    res.status(201).json({ message: 'Comment added successfully!', commentId });
   } catch (error) {
     console.error('Error adding comment:', error);
     res.status(500).json({ error: 'Error adding comment' });
   }
 });
+
+
 
 // Start the server
 app.listen(port, () => {
