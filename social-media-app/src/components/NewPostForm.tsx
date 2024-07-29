@@ -7,72 +7,46 @@ interface NewPostFormProps {
 }
 
 const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }) => {
-  const [file, setFile] = useState<File | null>(null);
   const [pictureUrl, setPictureUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const {userId}=useUser();
+  const { userId } = useUser();
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!pictureUrl) {
+      setError('Please enter a picture URL');
+      return;
+    }
+
+    const payload = {
+      userId,
+      pictureUrl,
+      likes: 0,
+    };
+
+    try {
+      const response = await axios.post('http://localhost:3000/posts', payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 201) {
+        refreshPosts();
+        setPictureUrl(''); // Clear the input field
+        setError(''); // Clear any previous error
+      } else {
+        setError('Failed to upload post');
+      }
+    } catch (error) {
+      console.error('Error uploading post', error);
+      setError('An error occurred. Please try again.');
     }
   };
 
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.result) {
-          resolve(reader.result as string);
-        } else {
-          reject(new Error('Failed to read file'));
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file); // Convert file to base64
-    });
-  };
-
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-
-  if (!file) {
-    setError('Please select a file');
-    return;
-  }
-
-  try {
-    const base64File = await convertFileToBase64(file);
-    console.log('Form submitted with file in Base64:', base64File, 'and userId:', userId);
-
-    // Prepare payload
-    const payload = {
-      file: base64File,
-      userId,
-      pictureUrl,
-    };
-
-    // Make API request
-    const response = await axios.post('http://localhost:3000/posts', payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.status === 200) {
-      refreshPosts();
-    } else {
-      setError('Failed to upload file');
-    }
-  } catch (error) {
-    console.error('Error uploading file', error);
-    setError('An error occurred. Please try again.');
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit}>
-    
       <div>
         <label htmlFor="pictureUrl">Picture URL:</label>
         <input
@@ -80,9 +54,11 @@ const handleSubmit = async (e: FormEvent) => {
           id="pictureUrl"
           value={pictureUrl}
           onChange={(e) => setPictureUrl(e.target.value)}
+          placeholder="Enter picture URL from Lorem Picsum"
         />
       </div>
       <button type="submit">Add Post</button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </form>
   );
 };

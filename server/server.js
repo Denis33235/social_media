@@ -3,14 +3,23 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const session = require('express-session');
 
 const app = express();
 const port = 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' })); // Increase payload limit for JSON
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // Increase payload limit for URL-encoded data
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
+// Session setup
+app.use(session({
+  secret: 'your_secret_key', // Change this to a secure key
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true } // Set to true if using HTTPS
+}));
 
 // Database connection
 const db = mysql.createPool({
@@ -42,6 +51,7 @@ app.post('/login', async (req, res) => {
       const user = rows[0];
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (isPasswordValid) {
+        req.session.userId = user.id; // Set userId in session
         res.send({ message: "Login successful!", userId: user.id });
       } else {
         res.status(400).send({ message: "Wrong email or password" });
@@ -54,8 +64,14 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
-
+// Middleware to protect routes
+const requireAuth = (req, res, next) => {
+  if (req.session.userId) {
+    next();
+  } else {
+    res.status(401).send({ message: 'Unauthorized' });
+  }
+};
 
 // Get a list of users
 app.get('/users', async (req, res) => {
@@ -68,21 +84,19 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Create a new post
+// Create a new post (protected route)
 app.post('/posts', async (req, res) => {
   const { userId, pictureUrl, likes = 0 } = req.body;
-  console.log('Creating post with:', { userId, pictureUrl, likes }); 
+
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
     const postId = result.insertId;
-    console.log('Post created with ID:', postId); // Debugging
     res.status(201).json({ message: 'Post created successfully!', postId });
   } catch (error) {
     console.error('Error creating post:', error);
     res.status(500).json({ error: 'Error creating post' });
   }
 });
-
 // Get a list of posts
 app.get('/posts', async (req, res) => {
   try {
@@ -111,7 +125,7 @@ app.get('/posts', async (req, res) => {
 });
 
 // Add a like to a post
-app.post('/posts/:id/like', async (req, res) => {
+app.post('/posts/:id/like', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
     const [result] = await db.execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', [id]);
@@ -126,7 +140,7 @@ app.post('/posts/:id/like', async (req, res) => {
 });
 
 // Add a comment to a post
-app.post('/posts/:id/comment', async (req, res) => {
+app.post('/posts/:id/comment', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { text } = req.body;
   try {

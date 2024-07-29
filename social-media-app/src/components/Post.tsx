@@ -1,4 +1,3 @@
-// components/Post.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
 
@@ -17,7 +16,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
 
   const handleLike = async () => {
     try {
-      await axios.post(`http://localhost:3000/posts/${post.id}/like/`);
+      await axios.post(`http://localhost:3000/posts/${post.id}/like`, {}, { withCredentials: true });
       refreshPosts();
     } catch (error) {
       console.error('Error adding like:', error);
@@ -32,12 +31,21 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
     e.preventDefault();
     if (comment.trim()) {
       try {
-        await axios.post(`http://localhost:3000/posts/${post.id}/comment/`, { text: comment });
+        await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment }, { withCredentials: true });
         setComment('');
         refreshPosts();
       } catch (error) {
         console.error('Error adding comment:', error);
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:3000/posts/${post.id}`, { withCredentials: true });
+      refreshPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
     }
   };
 
@@ -69,9 +77,16 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
           />
           <button
             type="submit"
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded"
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded mb-2"
           >
             Add Comment
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="bg-red hover:bg-orange-600 text-white font-bold py-1 px-3 rounded"
+          >
+            Delete Post
           </button>
         </form>
       </div>
