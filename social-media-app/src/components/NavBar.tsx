@@ -1,8 +1,17 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useUser } from '../components/UserContext'; // Assuming you have a UserContext
 
 const Navbar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { userId, token, setUserId, setToken } = useUser(); // Add setUserId and setToken to UserContext
+
+  const handleLogout = () => {
+    setUserId(null);
+    setToken(null);
+    navigate('/login');
+  };
 
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-900">
@@ -30,19 +39,30 @@ const Navbar: React.FC = () => {
           >
             Profile
           </Link>
-          <Link
-            to="/login"
-            className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/login' ? 'font-bold' : ''}`}
-          >
-            Login
-          </Link>
-          {location.pathname === '/login' && (
-            <Link
-              to="/register"
+          {!userId ? (
+            <>
+              <Link
+                to="/login"
+                className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/login' ? 'font-bold' : ''}`}
+              >
+                Login
+              </Link>
+              {location.pathname === '/login' && (
+                <Link
+                  to="/register"
+                  className="text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400"
+                >
+                  Register
+                </Link>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={handleLogout}
               className="text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400"
             >
-              Register
-            </Link>
+              Logout
+            </button>
           )}
         </div>
       </div>

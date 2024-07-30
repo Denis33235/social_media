@@ -175,18 +175,29 @@ app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
 
 // Add a comment to a post
 app.post('/posts/:id/comment', authenticateJWT, async (req, res) => {
-  const { id } = req.params; // id here refers to the postId
+  const { id } = req.params;
   const { text } = req.body;
+  const userId = req.user.id; // This should come from the authenticated user's token
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User must be logged in to add a comment' });
+  }
 
   try {
-    const [result] = await db.execute('INSERT INTO comments (postId, text) VALUES (?, ?)', [id, text]);
-    const commentId = result.insertId;
-    res.status(201).json({ message: 'Comment added successfully!', commentId });
+    const [result] = await db.execute(
+      'INSERT INTO comments (postId, text, userId) VALUES (?, ?, ?)',
+      [id, text, userId]
+    );
+    res.status(201).json({ message: 'Comment added successfully!', commentId: result.insertId });
   } catch (error) {
     console.error('Error adding comment:', error);
-    res.status(500).json({ error: 'Error adding comment' });
+    res.status(500).json({ error: 'Error adding comment', details: error.message });
   }
 });
+
+
+
+
 
 // Search users by email
 app.get('/search-users', async (req, res) => {

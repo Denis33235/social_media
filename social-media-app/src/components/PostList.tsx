@@ -6,7 +6,7 @@ interface PostListProps {
     id: number;
     pictureUrl: string;
     likes: number;
-    comments: string[];
+    comments: string[]; // Keep this as string[]
   }[];
   refreshPosts: () => void;
 }

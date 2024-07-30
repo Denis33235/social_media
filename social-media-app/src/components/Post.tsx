@@ -7,7 +7,7 @@ interface PostProps {
     id: number;
     pictureUrl: string;
     likes: number;
-    comments: string[];
+    comments: string[]; // Update this to string[]
   };
   refreshPosts: () => void;
 }
@@ -42,7 +42,6 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment }, {
           headers: {
             'Authorization': `Bearer ${token}`
-
           },
           withCredentials: true
         });
