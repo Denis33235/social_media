@@ -79,15 +79,14 @@ app.post('/login', async (req, res) => {
 app.get('/users/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
-    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
-    } else {
-      res.status(404).send({ message: 'User not found' });
+    const [rows] = await db.execute("SELECT email, username FROM users WHERE id = ?", [id]);
+    if (rows.length === 0) {
+      return res.status(404).send({ message: 'User not found' });
     }
+    res.json(rows[0]);
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).send({ error: 'Error fetching user profile' });
+    console.error('Error fetching profile:', error);
+    res.status(500).send({ error: 'Error fetching profile' });
   }
 });
 
@@ -107,31 +106,21 @@ app.post('/posts', authenticateJWT, async (req, res) => {
 });
 
 // Delete a post (protected route)
-// Delete a post
 app.delete('/posts/:id', authenticateJWT, async (req, res) => {
   const postId = req.params.id;
-
   try {
-    // Check if the post exists before attempting to delete
-    const [postCheck] = await db.execute('SELECT * FROM posts WHERE id = ?', [postId]);
-    if (postCheck.length === 0) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-
-    // Perform the deletion
     const [result] = await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
-
+    
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
 
     res.status(200).json({ message: 'Post deleted successfully!' });
   } catch (error) {
-    console.error('Error deleting post:', error); // Log the error
-    res.status(500).json({ error: 'Error deleting post', details: error.message });
+    console.error('Error deleting post:', error);
+    res.status(500).json({ error: 'Error deleting post' });
   }
 });
-
 
 // Get a list of posts with comments
 app.get('/posts', async (req, res) => {
@@ -159,6 +148,24 @@ app.get('/posts', async (req, res) => {
     res.status(500).json({ error: 'Error fetching posts' });
   }
 });
+app.delete('/posts/:postId/comments/:commentId', authenticateJWT, async (req, res) => {
+  const { postId, commentId } = req.params;
+
+  try {
+    const [result] = await db.execute('DELETE FROM comments WHERE id = ? AND postId = ?', [commentId, postId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    res.status(200).json({ message: 'Comment deleted successfully!' });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ error: 'Error deleting comment' });
+  }
+});
+
+
 
 // Add a like to a post (protected route)
 app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
@@ -209,6 +216,34 @@ app.get('/search-users', async (req, res) => {
     res.status(500).json({ error: 'Error searching users' });
   }
 });
+// Update user profile
+app.put('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { email, username } = req.body;
+  try {
+    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
+    res.send({ message: 'Profile updated successfully!' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).send({ error: 'Error updating profile' });
+  }
+});
+
+// Delete user profile
+app.delete('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.execute("DELETE FROM users WHERE id = ?", [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    res.send({ message: 'User deleted successfully!' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).send({ error: 'Error deleting user' });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {
