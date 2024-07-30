@@ -19,7 +19,7 @@ const Profile: React.FC = () => {
       fetchProfile();
     }
   }, [userId]);
-
+  
   const fetchProfile = async () => {
     try {
       const response = await axios.get(`http://localhost:3000/users/${userId}`, {
@@ -38,11 +38,12 @@ const Profile: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
-
+  
     try {
       await axios.put(`http://localhost:3000/users/${userId}`, { username, email }, {
         headers: {
@@ -57,11 +58,12 @@ const Profile: React.FC = () => {
       console.error(err);
     }
   };
+  
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
-
+  
     try {
       await axios.put(`http://localhost:3000/users/${userId}/password`, { currentPassword, newPassword }, {
         headers: {
@@ -77,10 +79,11 @@ const Profile: React.FC = () => {
       console.error(err);
     }
   };
+  
 
   const handleDeleteProfile = async () => {
     if (!userId) return;
-
+  
     try {
       await axios.delete(`http://localhost:3000/users/${userId}`, {
         headers: {
@@ -89,12 +92,12 @@ const Profile: React.FC = () => {
         withCredentials: true
       });
       alert('Profile deleted successfully!');
-      
     } catch (err) {
       setError('Failed to delete profile.');
       console.error(err);
     }
   };
+  
 
   const handleSearch = async () => {
     if (!searchQuery) return;

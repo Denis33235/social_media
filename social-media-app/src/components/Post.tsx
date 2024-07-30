@@ -18,6 +18,10 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
   const { userId, token } = useUser();
 
   const handleLike = async () => {
+    if (!userId) {
+      alert('You must be logged in to like a post.');
+      return;
+    }
     try {
       await axios.post(`http://localhost:3000/posts/${post.id}/like`, {}, {
         headers: {
@@ -25,7 +29,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         },
         withCredentials: true
       });
-      setLocalLikes(prevLikes => prevLikes + 1); 
+      setLocalLikes(prevLikes => prevLikes + 1);
     } catch (error) {
       console.error('Error adding like:', error);
     }
@@ -37,6 +41,10 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      alert('You must be logged in to add a comment.');
+      return;
+    }
     if (comment.trim()) {
       try {
         await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment }, {
@@ -46,7 +54,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
           withCredentials: true
         });
         setComment('');
-        refreshPosts(); 
+        refreshPosts();
       } catch (error) {
         console.error('Error adding comment:', error);
       }
@@ -65,7 +73,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         },
         withCredentials: true
       });
-      refreshPosts(); 
+      refreshPosts();
     } catch (error) {
       console.error('Error deleting post:', error);
     }

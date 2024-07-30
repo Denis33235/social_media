@@ -243,6 +243,7 @@ app.delete('/users/:id', authenticateJWT, async (req, res) => {
     res.status(500).send({ error: 'Error deleting user' });
   }
 });
+
 // Update user profile
 app.put('/users/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
@@ -278,6 +279,31 @@ app.put('/users/:id/password', authenticateJWT, async (req, res) => {
   } catch (error) {
     console.error('Error updating password:', error);
     res.status(500).send({ error: 'Error updating password' });
+  }
+});
+
+app.put('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { email, username } = req.body;
+  try {
+    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
+    res.send({ message: 'Profile updated successfully!' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).send({ error: 'Error updating profile' });
+  }
+});
+app.get('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.execute("SELECT email, username FROM users WHERE id = ?", [id]);
+    if (rows.length === 0) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).send({ error: 'Error fetching profile' });
   }
 });
 
