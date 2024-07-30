@@ -7,7 +7,7 @@ interface PostProps {
     id: number;
     pictureUrl: string;
     likes: number;
-    comments: string[]; // Update this to string[]
+    comments: string[];
   };
   refreshPosts: () => void;
 }
@@ -46,7 +46,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
           withCredentials: true
         });
         setComment('');
-        refreshPosts();
+        refreshPosts(); // Refresh posts to show new comment
       } catch (error) {
         console.error('Error adding comment:', error);
       }
@@ -65,7 +65,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         },
         withCredentials: true
       });
-      refreshPosts();
+      refreshPosts(); // Refresh posts after deleting
     } catch (error) {
       console.error('Error deleting post:', error);
     }
@@ -103,7 +103,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
           <button
             type="button"
             onClick={handleDelete}
-            className="bg-red hover:bg-orange-600 text-white font-bold py-1 px-3 rounded"
+            className="bg-red hover:bg-orange-400 text-white font-bold py-1 px-3 rounded"
           >
             Delete Post
           </button>

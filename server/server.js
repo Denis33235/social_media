@@ -27,6 +27,19 @@ const db = mysql.createPool({
   database: 'social_media',
 });
 
+// Middleware to protect routes
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token == null) return res.status(401).send({ message: 'Unauthorized' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).send({ message: 'Forbidden' });
+    req.user = user;
+    next();
+  });
+};
+
 // User registration
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -40,7 +53,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// User login
 // User login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -61,25 +73,6 @@ app.post('/login', async (req, res) => {
   } catch (err) {
     res.status(500).send({ error: err.message });
   }
-});
-
-
-// Middleware to protect routes
-const authenticateJWT = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) return res.status(401).send({ message: 'Unauthorized' });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).send({ message: 'Forbidden' });
-    req.user = user;
-    next();
-  });
-};
-
-// Route to check if session is set (for debugging)
-app.get('/check-session', authenticateJWT, (req, res) => {
-  res.send({ userId: req.user.id });
 });
 
 // Get a list of users
@@ -113,23 +106,32 @@ app.post('/posts', authenticateJWT, async (req, res) => {
   }
 });
 
+// Delete a post (protected route)
 // Delete a post
 app.delete('/posts/:id', authenticateJWT, async (req, res) => {
   const postId = req.params.id;
 
   try {
+    // Check if the post exists before attempting to delete
+    const [postCheck] = await db.execute('SELECT * FROM posts WHERE id = ?', [postId]);
+    if (postCheck.length === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Perform the deletion
     const [result] = await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
 
     res.status(200).json({ message: 'Post deleted successfully!' });
   } catch (error) {
-    console.error('Error deleting post:', error);
-    res.status(500).json({ error: 'Error deleting post' });
+    console.error('Error deleting post:', error); // Log the error
+    res.status(500).json({ error: 'Error deleting post', details: error.message });
   }
 });
+
 
 // Get a list of posts with comments
 app.get('/posts', async (req, res) => {
@@ -158,7 +160,7 @@ app.get('/posts', async (req, res) => {
   }
 });
 
-// Add a like to a post
+// Add a like to a post (protected route)
 app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
@@ -173,15 +175,11 @@ app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
   }
 });
 
-// Add a comment to a post
+// Add a comment to a post (protected route)
 app.post('/posts/:id/comment', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   const { text } = req.body;
-  const userId = req.user.id; // This should come from the authenticated user's token
-
-  if (!userId) {
-    return res.status(401).json({ error: 'User must be logged in to add a comment' });
-  }
+  const userId = req.user.id;
 
   try {
     const [result] = await db.execute(
@@ -194,10 +192,6 @@ app.post('/posts/:id/comment', authenticateJWT, async (req, res) => {
     res.status(500).json({ error: 'Error adding comment', details: error.message });
   }
 });
-
-
-
-
 
 // Search users by email
 app.get('/search-users', async (req, res) => {
@@ -213,39 +207,6 @@ app.get('/search-users', async (req, res) => {
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Error searching users' });
-  }
-});
-
-// Get a user's profile
-app.get('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
-    } else {
-      res.status(404).send({ message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).send({ error: 'Error fetching user profile' });
-  }
-});
-
-
-// Update user profile
-app.get('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
-    } else {
-      res.status(404).send({ message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).send({ error: 'Error fetching user profile' });
   }
 });
 
