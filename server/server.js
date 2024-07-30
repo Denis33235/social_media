@@ -4,7 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-require('dotenv').config(); 
+require('dotenv').config();
 
 const app = express();
 const port = 3000;
@@ -16,8 +16,8 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-app.use(bodyParser.json()); 
-app.use(bodyParser.urlencoded({ extended: true })); 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Database connection
 const db = mysql.createPool({
@@ -63,7 +63,7 @@ app.post('/login', async (req, res) => {
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (isPasswordValid) {
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ userId: user.id, token }); 
+        res.json({ userId: user.id, token });
       } else {
         res.status(400).send({ message: "Wrong email or password" });
       }
@@ -75,7 +75,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Get a list of users
+// Get a user profile
 app.get('/users/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
@@ -90,10 +90,49 @@ app.get('/users/:id', authenticateJWT, async (req, res) => {
   }
 });
 
+// Update user profile
+app.put('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { email, username } = req.body;
+  try {
+    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
+    res.send({ message: 'Profile updated successfully!' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).send({ error: 'Error updating profile' });
+  }
+});
+
+// Update user password
+app.put('/users/:id/password', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const [rows] = await db.query("SELECT password FROM users WHERE id = ?", [id]);
+    const user = rows[0];
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).send({ message: 'Current password is incorrect' });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await db.query("UPDATE users SET password = ? WHERE id = ?", [hashedNewPassword, id]);
+    res.send({ message: 'Password updated successfully!' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).send({ error: 'Error updating password' });
+  }
+});
+
 // Create a new post (protected route)
 app.post('/posts', authenticateJWT, async (req, res) => {
   const { pictureUrl, likes = 0 } = req.body;
-  const userId = req.user.id; 
+  const userId = req.user.id;
 
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
@@ -110,7 +149,7 @@ app.delete('/posts/:id', authenticateJWT, async (req, res) => {
   const postId = req.params.id;
   try {
     const [result] = await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
@@ -148,6 +187,8 @@ app.get('/posts', async (req, res) => {
     res.status(500).json({ error: 'Error fetching posts' });
   }
 });
+
+// Delete a comment from a post (protected route)
 app.delete('/posts/:postId/comments/:commentId', authenticateJWT, async (req, res) => {
   const { postId, commentId } = req.params;
 
@@ -164,8 +205,6 @@ app.delete('/posts/:postId/comments/:commentId', authenticateJWT, async (req, re
     res.status(500).json({ error: 'Error deleting comment' });
   }
 });
-
-
 
 // Add a like to a post (protected route)
 app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
@@ -203,11 +242,11 @@ app.post('/posts/:id/comment', authenticateJWT, async (req, res) => {
 // Search users by email
 app.get('/search-users', async (req, res) => {
   const { query } = req.query;
-  
+
   if (!query) {
     return res.status(400).send({ message: 'Query parameter is required' });
   }
-  
+
   try {
     const [results] = await db.execute('SELECT id, email FROM users WHERE email LIKE ?', [`%${query}%`]);
     res.json(results);
@@ -216,98 +255,6 @@ app.get('/search-users', async (req, res) => {
     res.status(500).json({ error: 'Error searching users' });
   }
 });
-// Update user profile
-app.put('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  const { email, username } = req.body;
-  try {
-    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
-    res.send({ message: 'Profile updated successfully!' });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).send({ error: 'Error updating profile' });
-  }
-});
-
-// Delete user profile
-app.delete('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [result] = await db.execute("DELETE FROM users WHERE id = ?", [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).send({ message: 'User not found' });
-    }
-    res.send({ message: 'User deleted successfully!' });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).send({ error: 'Error deleting user' });
-  }
-});
-
-// Update user profile
-app.put('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  const { email, username } = req.body;
-  try {
-    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
-    res.send({ message: 'Profile updated successfully!' });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).send({ error: 'Error updating profile' });
-  }
-});
-// Update user password
-app.put('/users/:id/password', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  const { currentPassword, newPassword } = req.body;
-
-  try {
-    const [rows] = await db.query("SELECT password FROM users WHERE id = ?", [id]);
-    const user = rows[0];
-    if (!user) {
-      return res.status(404).send({ message: 'User not found' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).send({ message: 'Current password is incorrect' });
-    }
-
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    await db.query("UPDATE users SET password = ? WHERE id = ?", [hashedNewPassword, id]);
-    res.send({ message: 'Password updated successfully!' });
-  } catch (error) {
-    console.error('Error updating password:', error);
-    res.status(500).send({ error: 'Error updating password' });
-  }
-});
-
-app.put('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  const { email, username } = req.body;
-  try {
-    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
-    res.send({ message: 'Profile updated successfully!' });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).send({ error: 'Error updating profile' });
-  }
-});
-app.get('/users/:id', authenticateJWT, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [rows] = await db.execute("SELECT email, username FROM users WHERE id = ?", [id]);
-    if (rows.length === 0) {
-      return res.status(404).send({ message: 'User not found' });
-    }
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).send({ error: 'Error fetching profile' });
-  }
-});
-
-
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

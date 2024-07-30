@@ -15,11 +15,11 @@ const Profile: React.FC = () => {
   const [searchResults, setSearchResults] = useState<{ id: number; email: string }[]>([]);
 
   useEffect(() => {
-    if (userId) {
+    if (userId && token) {
       fetchProfile();
     }
-  }, [userId]);
-  
+  }, [userId, token]);
+
   const fetchProfile = async () => {
     try {
       const response = await axios.get(`http://localhost:3000/users/${userId}`, {
@@ -32,18 +32,17 @@ const Profile: React.FC = () => {
       setUsername(response.data.username);
       setEmail(response.data.email);
     } catch (err) {
-      setError('Failed to fetch profile.');
-      console.error(err);
+      setError('Failed to fetch profile. Please try again.');
+      console.error('Fetch profile error:', err);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
-  
+    if (!userId || !token) return;
+
     try {
       await axios.put(`http://localhost:3000/users/${userId}`, { username, email }, {
         headers: {
@@ -54,16 +53,15 @@ const Profile: React.FC = () => {
       alert('Profile updated successfully!');
       fetchProfile();
     } catch (err) {
-      setError('Failed to update profile.');
-      console.error(err);
+      setError('Failed to update profile. Please try again.');
+      console.error('Update profile error:', err);
     }
   };
-  
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
-  
+    if (!userId || !token) return;
+
     try {
       await axios.put(`http://localhost:3000/users/${userId}/password`, { currentPassword, newPassword }, {
         headers: {
@@ -75,15 +73,14 @@ const Profile: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
     } catch (err) {
-      setError('Failed to update password.');
-      console.error(err);
+      setError('Failed to update password. Please try again.');
+      console.error('Change password error:', err);
     }
   };
-  
 
   const handleDeleteProfile = async () => {
-    if (!userId) return;
-  
+    if (!userId || !token) return;
+
     try {
       await axios.delete(`http://localhost:3000/users/${userId}`, {
         headers: {
@@ -92,15 +89,15 @@ const Profile: React.FC = () => {
         withCredentials: true
       });
       alert('Profile deleted successfully!');
+      // Handle post-deletion logic, like redirecting to a different page
     } catch (err) {
-      setError('Failed to delete profile.');
-      console.error(err);
+      setError('Failed to delete profile. Please try again.');
+      console.error('Delete profile error:', err);
     }
   };
-  
 
   const handleSearch = async () => {
-    if (!searchQuery) return;
+    if (!searchQuery || !token) return;
 
     try {
       const response = await axios.get(`http://localhost:3000/search-users?query=${searchQuery}`, {
@@ -111,8 +108,8 @@ const Profile: React.FC = () => {
       });
       setSearchResults(response.data);
     } catch (err) {
-      setError('Failed to search users.');
-      console.error(err);
+      setError('Failed to search users. Please try again.');
+      console.error('Search users error:', err);
     }
   };
 
@@ -215,9 +212,13 @@ const Profile: React.FC = () => {
           </button>
         </div>
         <ul>
-          {searchResults.map(user => (
-            <li key={user.id}>{user.email}</li>
-          ))}
+          {searchResults.length ? (
+            searchResults.map(user => (
+              <li key={user.id}>{user.email}</li>
+            ))
+          ) : (
+            <li>No results found.</li>
+          )}
         </ul>
       </div>
     </div>
