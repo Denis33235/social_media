@@ -3,8 +3,8 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
-const session = require('express-session');
-const cookieParser = require('cookie-parser'); // Fix import here
+const jwt = require('jsonwebtoken');
+require('dotenv').config(); // For environment variables
 
 const app = express();
 const port = 3000;
@@ -16,17 +16,8 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use(cookieParser()); // Use cookie-parser middleware
-
-// Session setup
-app.use(session({
-  secret: 'your_secret_key', // Change this to a secure key
-  resave: false,
-  saveUninitialized: false, // Use false to prevent saving uninitialized sessions
-  cookie: { secure: false, httpOnly: true }, // Set httpOnly to true for security, secure to true for HTTPS
-}));
+app.use(bodyParser.json()); // To parse JSON bodies
+app.use(bodyParser.urlencoded({ extended: true })); // To parse URL-encoded bodies
 
 // Database connection
 const db = mysql.createPool({
@@ -50,6 +41,7 @@ app.post('/register', async (req, res) => {
 });
 
 // User login
+// User login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -58,8 +50,8 @@ app.post('/login', async (req, res) => {
       const user = rows[0];
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (isPasswordValid) {
-        req.session.userId = user.id; // Set userId in session
-        res.send({ message: "Login successful!", userId: user.id });
+        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.json({ userId: user.id, token }); // Ensure both userId and token are returned
       } else {
         res.status(400).send({ message: "Wrong email or password" });
       }
@@ -73,25 +65,25 @@ app.post('/login', async (req, res) => {
 
 
 // Middleware to protect routes
-const requireAuth = (req, res, next) => {
-  if (req.session && req.session.userId) {
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token == null) return res.status(401).send({ message: 'Unauthorized' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).send({ message: 'Forbidden' });
+    req.user = user;
     next();
-  } else {
-    res.status(401).send({ message: 'Unauthorized' });
-  }
+  });
 };
 
 // Route to check if session is set (for debugging)
-app.get('/check-session', (req, res) => {
-  if (req.session.userId) {
-    res.send({ userId: req.session.userId });
-  } else {
-    res.status(401).send({ message: 'Unauthorized' });
-  }
+app.get('/check-session', authenticateJWT, (req, res) => {
+  res.send({ userId: req.user.id });
 });
 
 // Get a list of users
-app.get('/users/:id', requireAuth, async (req, res) => {
+app.get('/users/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
     const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
@@ -106,11 +98,10 @@ app.get('/users/:id', requireAuth, async (req, res) => {
   }
 });
 
-
 // Create a new post (protected route)
-app.post('/posts', requireAuth, async (req, res) => {
+app.post('/posts', authenticateJWT, async (req, res) => {
   const { pictureUrl, likes = 0 } = req.body;
-  const userId = req.session.userId; // Get userId from session
+  const userId = req.user.id; // Get userId from JWT
 
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
@@ -122,9 +113,8 @@ app.post('/posts', requireAuth, async (req, res) => {
   }
 });
 
-
 // Delete a post
-app.delete('/posts/:id', requireAuth, async (req, res) => {
+app.delete('/posts/:id', authenticateJWT, async (req, res) => {
   const postId = req.params.id;
 
   try {
@@ -140,7 +130,6 @@ app.delete('/posts/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Error deleting post' });
   }
 });
-
 
 // Get a list of posts with comments
 app.get('/posts', async (req, res) => {
@@ -170,7 +159,7 @@ app.get('/posts', async (req, res) => {
 });
 
 // Add a like to a post
-app.post('/posts/:id/like', requireAuth, async (req, res) => {
+app.post('/posts/:id/like', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
     const [result] = await db.execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', [id]);
@@ -185,7 +174,7 @@ app.post('/posts/:id/like', requireAuth, async (req, res) => {
 });
 
 // Add a comment to a post
-app.post('/posts/:id/comment', requireAuth, async (req, res) => {
+app.post('/posts/:id/comment', authenticateJWT, async (req, res) => {
   const { id } = req.params; // id here refers to the postId
   const { text } = req.body;
 
@@ -198,6 +187,7 @@ app.post('/posts/:id/comment', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Error adding comment' });
   }
 });
+
 // Search users by email
 app.get('/search-users', async (req, res) => {
   const { query } = req.query;
@@ -214,22 +204,9 @@ app.get('/search-users', async (req, res) => {
     res.status(500).json({ error: 'Error searching users' });
   }
 });
-app.get('/users/me', requireAuth, async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [req.session.userId]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
-    } else {
-      res.status(404).send({ message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).send({ error: 'Error fetching user profile' });
-  }
-});
 
-// Update user profile
-app.get('/users/:id', requireAuth, async (req, res) => {
+// Get a user's profile
+app.get('/users/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
   try {
     const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
@@ -244,6 +221,22 @@ app.get('/users/:id', requireAuth, async (req, res) => {
   }
 });
 
+
+// Update user profile
+app.get('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).send({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).send({ error: 'Error fetching user profile' });
+  }
+});
 
 // Start the server
 app.listen(port, () => {

@@ -14,20 +14,12 @@ interface PostListProps {
 const PostList: React.FunctionComponent<PostListProps> = ({ posts = [], refreshPosts }) => {
   const [sortedByLikes, setSortedByLikes] = useState<boolean>(false);
 
-  // Function to toggle sorting by likes
   const handleSortByLikes = () => {
     setSortedByLikes(prev => !prev);
   };
 
-  // Sort posts based on the sortedByLikes state
   const sortedPosts = [...posts].sort((a, b) => {
-    if (sortedByLikes) {
-      // Sort in ascending order
-      return a.likes - b.likes;
-    } else {
-      // Sort in descending order
-      return b.likes - a.likes;
-    }
+    return sortedByLikes ? a.likes - b.likes : b.likes - a.likes;
   });
 
   return (

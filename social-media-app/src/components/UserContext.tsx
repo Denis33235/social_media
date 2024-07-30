@@ -1,17 +1,21 @@
+// UserContext.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface UserContextType {
   userId: number | null;
-  setUserId: React.Dispatch<React.SetStateAction<number | null>>;
+  token: string | null;
+  setUserId: (id: number | null) => void;
+  setToken: (token: string | null) => void;
 }
 
-export const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<number | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   return (
-    <UserContext.Provider value={{ userId, setUserId }}>
+    <UserContext.Provider value={{ userId, token, setUserId, setToken }}>
       {children}
     </UserContext.Provider>
   );
@@ -19,8 +23,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (!context) {
-    throw new Error("useUser must be used within a UserProvider");
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };

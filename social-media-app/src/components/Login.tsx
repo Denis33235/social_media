@@ -1,14 +1,13 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserContext, useUser } from './UserContext';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useUser } from '../components/UserContext'; // Ensure this is correct
 import axios from 'axios';
 
 const Login: React.FC = () => {
   const [emailLog, setEmailLog] = useState('');
   const [passwordLog, setPasswordLog] = useState('');
-  const { setUserId } = useUser(); // Correctly use UserContext
-  const navigate = useNavigate();
+  const { setUserId, setToken } = useUser(); // Correctly use UserContext
+  const navigate = useNavigate(); // Hook for navigation
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,9 +16,17 @@ const Login: React.FC = () => {
         email: emailLog,
         password: passwordLog,
       });
-      if (response.data.userId) {
+
+      // Ensure response contains userId and token
+      if (response.data.userId && response.data.token) {
         setUserId(response.data.userId); // Set userId from response
-        navigate('/'); // Redirect to home page after successful login
+        setToken(response.data.token); // Set token in context
+        localStorage.setItem('token', response.data.token); // Store token in localStorage
+
+        // Redirect to home page
+        navigate('/');
+      } else {
+        console.error("Login response did not contain userId or token");
       }
     } catch (error) {
       console.error("Error logging in:", error.response?.data?.message || error.message);

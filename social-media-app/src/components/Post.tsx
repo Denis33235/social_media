@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useUser } from '../components/UserContext';
 import axios from 'axios';
+import { useUser } from '../components/UserContext';
 
 interface PostProps {
   post: {
@@ -15,29 +15,37 @@ interface PostProps {
 const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
   const [comment, setComment] = useState('');
   const [localLikes, setLocalLikes] = useState(post.likes);
-  const { userId } = useUser();
+  const { userId, token } = useUser();
 
-  // Handle like action (send to server)
   const handleLike = async () => {
     try {
-      await axios.post(`http://localhost:3000/posts/${post.id}/like`, {}, { withCredentials: true });
+      await axios.post(`http://localhost:3000/posts/${post.id}/like`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        withCredentials: true
+      });
       setLocalLikes(prevLikes => prevLikes + 1); // Update local state for immediate feedback
     } catch (error) {
       console.error('Error adding like:', error);
     }
   };
 
-  // Handle comment input change
   const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setComment(e.target.value);
   };
 
-  // Handle comment submission
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim()) {
       try {
-        await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment }, { withCredentials: true });
+        await axios.post(`http://localhost:3000/posts/${post.id}/comment`, { text: comment }, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+
+          },
+          withCredentials: true
+        });
         setComment('');
         refreshPosts();
       } catch (error) {
@@ -46,14 +54,18 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
     }
   };
 
-  // Handle post deletion
   const handleDelete = async () => {
     if (!userId) {
       alert('You must be logged in to delete a post.');
       return;
     }
     try {
-      await axios.delete(`http://localhost:3000/posts/${post.id}`, { withCredentials: true });
+      await axios.delete(`http://localhost:3000/posts/${post.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        withCredentials: true
+      });
       refreshPosts();
     } catch (error) {
       console.error('Error deleting post:', error);
@@ -103,4 +115,3 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
 };
 
 export default Post;
-  

@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useUser } from '../components/UserContext'; // Ensure this path is correct
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const { setToken } = useUser(); // Use UserContext to set token if needed
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3000/register", {
+      const response = await axios.post("http://localhost:3000/register", {
         email,
         password,
       });
+      // Assuming registration returns a token (commonly it's returned on login)
+      if (response.data.token) {
+        setToken(response.data.token); // Set token in context
+      }
       // On successful registration, redirect to login page
       navigate('/login');
     } catch (error) {
