@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
+import React, { useState, FormEvent } from 'react';
 import axios from 'axios';
 import { useUser } from '../components/UserContext';
 
@@ -13,6 +13,11 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!userId) {
+      setError('You must be logged in to add a post.');
+      return;
+    }
 
     if (!pictureUrl) {
       setError('Please enter a picture URL');
@@ -30,7 +35,9 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
         headers: {
           'Content-Type': 'application/json',
         },
+        withCredentials: true, // Add this line
       });
+      
 
       if (response.status === 201) {
         refreshPosts();
@@ -44,6 +51,10 @@ const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }
       setError('An error occurred. Please try again.');
     }
   };
+
+  if (!userId) {
+    return <p>Please log in to add a post.</p>;
+  }
 
   return (
     <form onSubmit={handleSubmit}>

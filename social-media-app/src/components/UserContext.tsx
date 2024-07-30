@@ -5,7 +5,7 @@ interface UserContextType {
   setUserId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+export const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<number | null>(null);

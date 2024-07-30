@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useUser } from '../components/UserContext';
 
 interface PostProps {
   post: {
@@ -13,6 +14,7 @@ interface PostProps {
 
 const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
   const [comment, setComment] = useState('');
+  const { userId } = useUser();
 
   const handleLike = async () => {
     try {
@@ -41,6 +43,10 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
   };
 
   const handleDelete = async () => {
+    if (!userId) {
+      alert('You must be logged in to delete a post.');
+      return;
+    }
     try {
       await axios.delete(`http://localhost:3000/posts/${post.id}`, { withCredentials: true });
       refreshPosts();

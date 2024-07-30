@@ -5,13 +5,12 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 
-
 const app = express();
 const port = 3000;
 
 // Middleware
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: 'http://localhost:5173', // Ensure this matches your React app's URL
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -35,20 +34,20 @@ const db = mysql.createPool({
   database: 'social_media',
 });
 
+// User registration
 app.post('/register', async (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
+  const { email, password } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
     res.send({ message: 'User registered successfully!' });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ err: err.message });
+    res.status(500).send({ error: err.message });
   }
 });
 
+// User login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -66,7 +65,7 @@ app.post('/login', async (req, res) => {
       res.status(400).send({ message: "Wrong email or password" });
     }
   } catch (err) {
-    res.status(500).send({ err: err.message });
+    res.status(500).send({ error: err.message });
   }
 });
 
@@ -85,7 +84,6 @@ app.get('/check-session', (req, res) => {
     res.send({ userId: req.session.userId });
   } else {
     res.status(401).send({ message: 'Unauthorized' });
-    console.log("heee")
   }
 });
 
@@ -101,7 +99,7 @@ app.get('/users', async (req, res) => {
 });
 
 // Create a new post (protected route)
-app.post('/posts', async (req, res) => {
+app.post('/posts', requireAuth, async (req, res) => {
   const { userId, pictureUrl, likes = 0 } = req.body;
 
   try {
@@ -114,6 +112,7 @@ app.post('/posts', async (req, res) => {
   }
 });
 
+// Delete a post
 app.delete('/posts/:id', async (req, res) => {
   const postId = req.params.id;
 
@@ -131,7 +130,7 @@ app.delete('/posts/:id', async (req, res) => {
   }
 });
 
-// Get a list of posts
+// Get a list of posts with comments
 app.get('/posts', async (req, res) => {
   try {
     const [postResults] = await db.execute('SELECT * FROM posts');
@@ -174,17 +173,6 @@ app.post('/posts/:id/like', requireAuth, async (req, res) => {
 });
 
 // Add a comment to a post
-// app.post('/posts/:id/comment', requireAuth, async (req, res) => {
-//   const { id } = req.params;
-//   const { text } = req.body;
-//   try {
-//     await db.execute('INSERT INTO comments (postId, text) VALUES (?, ?)', [id, text]);
-//     res.status(201).json({ message: 'Comment added successfully!' });
-//   } catch (error) {
-//     console.error('Error adding comment:', error);
-//     res.status(500).json({ error: 'Error adding comment' });
-//   }
-// });
 app.post('/posts/:id/comment', requireAuth, async (req, res) => {
   const { id } = req.params; // id here refers to the postId
   const { text } = req.body;
@@ -198,8 +186,6 @@ app.post('/posts/:id/comment', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Error adding comment' });
   }
 });
-
-
 
 // Start the server
 app.listen(port, () => {
