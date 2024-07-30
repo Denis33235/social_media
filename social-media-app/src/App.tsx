@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
-import NewPostForm from './components/NewPostForm'; // Corrected import
+import NewPostForm from './components/NewPostForm'; 
 import PostList from './components/PostList';
 import { UserProvider } from './components/UserContext';
 import Login from './components/Login';
 import Register from './components/Register';
-import Navbar from './components/NavBar'; // Correct import
-import UserSearch from './components/UserSearch'; // Import the new UserSearch component
+import Navbar from './components/NavBar'; 
+import UserSearch from './components/UserSearch';
 import Profile from './components/Profile';
 
 interface Post {
@@ -48,7 +48,7 @@ const App: React.FC = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/search-users" element={<UserSearch />} /> {/* Add route for user search */}
+              <Route path="/search-users" element={<UserSearch />} />
               <Route path="/" element={
                 <>
                   <NewPostForm refreshPosts={fetchPosts} />

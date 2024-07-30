@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useUser } from '../components/UserContext'; // Ensure this path is correct
+import { useUser } from '../components/UserContext'; 
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const { setToken } = useUser(); // Use UserContext to set token if needed
+  const { setToken } = useUser(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,11 +16,11 @@ const Register: React.FC = () => {
         email,
         password,
       });
-      // Assuming registration returns a token (commonly it's returned on login)
+  
       if (response.data.token) {
-        setToken(response.data.token); // Set token in context
+        setToken(response.data.token);
       }
-      // On successful registration, redirect to login page
+      
       navigate('/login');
     } catch (error) {
       console.error("Error registering:", error.response?.data?.err || error.message);

@@ -10,7 +10,7 @@ interface NewPostFormProps {
 const NewPostForm: React.FunctionComponent<NewPostFormProps> = ({ refreshPosts }) => {
   const [pictureUrl, setPictureUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const { userId, token } = useUser(); // Include token
+  const { userId, token } = useUser(); 
 
  // NewPostForm.tsx
 const handleSubmit = async (e: FormEvent) => {
@@ -35,15 +35,15 @@ const handleSubmit = async (e: FormEvent) => {
     const response = await axios.post('http://localhost:3000/posts', payload, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`, // Include JWT token here
+        'Authorization': `Bearer ${token}`,
       },
-      withCredentials: true, // Ensure credentials are sent with the request
+      withCredentials: true,
     });
 
     if (response.status === 201) {
       refreshPosts();
-      setPictureUrl(''); // Clear the input field
-      setError(''); // Clear any previous error
+      setPictureUrl('');
+      setError(''); 
     } else {
       setError('Failed to upload post');
     }

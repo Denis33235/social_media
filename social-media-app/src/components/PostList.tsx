@@ -6,7 +6,7 @@
       id: number;
       pictureUrl: string;
       likes: number;
-      comments: string[]; // Keep this as string[]
+      comments: string[];
     }[];
     refreshPosts: () => void;
   }

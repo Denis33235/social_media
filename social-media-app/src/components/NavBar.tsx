@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUser } from '../components/UserContext'; // Assuming you have a UserContext
+import { useUser } from '../components/UserContext'; 
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { userId, token, setUserId, setToken } = useUser(); // Add setUserId and setToken to UserContext
-
+  const { userId, token, setUserId, setToken } = useUser(); 
+  
   const handleLogout = () => {
     setUserId(null);
     setToken(null);

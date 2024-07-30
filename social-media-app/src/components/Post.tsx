@@ -25,7 +25,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         },
         withCredentials: true
       });
-      setLocalLikes(prevLikes => prevLikes + 1); // Update local state for immediate feedback
+      setLocalLikes(prevLikes => prevLikes + 1); 
     } catch (error) {
       console.error('Error adding like:', error);
     }
@@ -46,7 +46,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
           withCredentials: true
         });
         setComment('');
-        refreshPosts(); // Refresh posts to show new comment
+        refreshPosts(); 
       } catch (error) {
         console.error('Error adding comment:', error);
       }
@@ -65,7 +65,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
         },
         withCredentials: true
       });
-      refreshPosts(); // Refresh posts after deleting
+      refreshPosts(); 
     } catch (error) {
       console.error('Error deleting post:', error);
     }

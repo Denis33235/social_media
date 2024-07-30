@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useUser } from '../components/UserContext';
 
 const Profile: React.FC = () => {
-  const { userId, token } = useUser(); // Access token from context
+  const { userId, token } = useUser(); 
   const [profile, setProfile] = useState<{ email: string; username: string } | null>(null);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -28,7 +28,6 @@ const Profile: React.FC = () => {
         },
         withCredentials: true
       });
-      console.log(response.data); // Add this line to check the response
       setProfile(response.data);
       setUsername(response.data.username);
       setEmail(response.data.email);
@@ -52,7 +51,7 @@ const Profile: React.FC = () => {
         withCredentials: true
       });
       alert('Profile updated successfully!');
-      fetchProfile(); // Refresh profile data
+      fetchProfile();
     } catch (err) {
       setError('Failed to update profile.');
       console.error(err);
@@ -90,7 +89,7 @@ const Profile: React.FC = () => {
         withCredentials: true
       });
       alert('Profile deleted successfully!');
-      // Optionally redirect user to login or home page
+      
     } catch (err) {
       setError('Failed to delete profile.');
       console.error(err);
@@ -203,28 +202,20 @@ const Profile: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="border border-gray-300 rounded-lg px-4 py-2 w-full"
-            placeholder="Search by email..."
+            placeholder="Search by email or username"
           />
           <button
             onClick={handleSearch}
-            className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mt-2"
           >
             Search
           </button>
         </div>
-
-        {searchResults.length > 0 && (
-          <ul className="list-disc pl-5">
-            {searchResults.map(user => (
-              <li key={user.id} className="mb-2">
-                <span className="font-semibold">{user.email}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {searchResults.length === 0 && searchQuery && (
-          <div>No users found.</div>
-        )}
+        <ul>
+          {searchResults.map(user => (
+            <li key={user.id}>{user.email}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );

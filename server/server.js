@@ -4,20 +4,20 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-require('dotenv').config(); // For environment variables
+require('dotenv').config(); 
 
 const app = express();
 const port = 3000;
 
 // Middleware
 const corsOptions = {
-  origin: 'http://localhost:5173', // Ensure this matches your React app's URL
+  origin: 'http://localhost:5173',
   credentials: true,
   optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-app.use(bodyParser.json()); // To parse JSON bodies
-app.use(bodyParser.urlencoded({ extended: true })); // To parse URL-encoded bodies
+app.use(bodyParser.json()); 
+app.use(bodyParser.urlencoded({ extended: true })); 
 
 // Database connection
 const db = mysql.createPool({
@@ -63,7 +63,7 @@ app.post('/login', async (req, res) => {
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (isPasswordValid) {
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ userId: user.id, token }); // Ensure both userId and token are returned
+        res.json({ userId: user.id, token }); 
       } else {
         res.status(400).send({ message: "Wrong email or password" });
       }
@@ -93,7 +93,7 @@ app.get('/users/:id', authenticateJWT, async (req, res) => {
 // Create a new post (protected route)
 app.post('/posts', authenticateJWT, async (req, res) => {
   const { pictureUrl, likes = 0 } = req.body;
-  const userId = req.user.id; // Get userId from JWT
+  const userId = req.user.id; 
 
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
@@ -243,9 +243,46 @@ app.delete('/users/:id', authenticateJWT, async (req, res) => {
     res.status(500).send({ error: 'Error deleting user' });
   }
 });
+// Update user profile
+app.put('/users/:id', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { email, username } = req.body;
+  try {
+    await db.query("UPDATE users SET email = ?, username = ? WHERE id = ?", [email, username, id]);
+    res.send({ message: 'Profile updated successfully!' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).send({ error: 'Error updating profile' });
+  }
+});
+// Update user password
+app.put('/users/:id/password', authenticateJWT, async (req, res) => {
+  const { id } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const [rows] = await db.query("SELECT password FROM users WHERE id = ?", [id]);
+    const user = rows[0];
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).send({ message: 'Current password is incorrect' });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await db.query("UPDATE users SET password = ? WHERE id = ?", [hashedNewPassword, id]);
+    res.send({ message: 'Password updated successfully!' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).send({ error: 'Error updating password' });
+  }
+});
 
 
-// Start the server
+
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
