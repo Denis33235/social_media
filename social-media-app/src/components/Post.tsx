@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useUser } from '../components/UserContext';
+import axios from 'axios';
 
 interface PostProps {
   post: {
@@ -14,21 +14,25 @@ interface PostProps {
 
 const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
   const [comment, setComment] = useState('');
+  const [localLikes, setLocalLikes] = useState(post.likes);
   const { userId } = useUser();
 
+  // Handle like action (send to server)
   const handleLike = async () => {
     try {
       await axios.post(`http://localhost:3000/posts/${post.id}/like`, {}, { withCredentials: true });
-      refreshPosts();
+      setLocalLikes(prevLikes => prevLikes + 1); // Update local state for immediate feedback
     } catch (error) {
       console.error('Error adding like:', error);
     }
   };
 
+  // Handle comment input change
   const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setComment(e.target.value);
   };
 
+  // Handle comment submission
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim()) {
@@ -42,6 +46,7 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
     }
   };
 
+  // Handle post deletion
   const handleDelete = async () => {
     if (!userId) {
       alert('You must be logged in to delete a post.');
@@ -60,11 +65,8 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
       <img src={post.pictureUrl} alt="Post" className="w-full h-64 object-cover" />
       <div className="p-4">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-gray-700 text-lg font-semibold">Likes: {post.likes}</p>
-          <button
-            onClick={handleLike}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded"
-          >
+          <p className="text-gray-700 text-lg font-semibold">Likes: {localLikes}</p>
+          <button onClick={handleLike} className="flex flex-col bg-slate-500 rounded-md px-4 hover:bg-slate-300">
             Like
           </button>
         </div>
@@ -101,3 +103,4 @@ const Post: React.FC<PostProps> = ({ post, refreshPosts }) => {
 };
 
 export default Post;
+  

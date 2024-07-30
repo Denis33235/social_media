@@ -7,6 +7,8 @@ import { UserProvider } from './components/UserContext';
 import Login from './components/Login';
 import Register from './components/Register';
 import Navbar from './components/NavBar'; // Correct import
+import UserSearch from './components/UserSearch'; // Import the new UserSearch component
+import Profile from './components/Profile';
 
 interface Post {
   id: number;
@@ -43,8 +45,10 @@ const App: React.FC = () => {
         <div className="min-h-screen bg-gray-100 p-4">
           <div className="max-w-2xl mx-auto">
             <Routes>
-              <Route path="/login" element={<Login />}/>
+              <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/search-users" element={<UserSearch />} /> {/* Add route for user search */}
               <Route path="/" element={
                 <>
                   <NewPostForm refreshPosts={fetchPosts} />

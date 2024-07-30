@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const cookieParser = require('cookie-parser'); // Fix import here
 
 const app = express();
 const port = 3000;
@@ -17,13 +18,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(cookieParser()); // Use cookie-parser middleware
 
 // Session setup
 app.use(session({
   secret: 'your_secret_key', // Change this to a secure key
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }, // Set to false for HTTP (local development)
+  saveUninitialized: false, // Use false to prevent saving uninitialized sessions
+  cookie: { secure: false, httpOnly: true }, // Set httpOnly to true for security, secure to true for HTTPS
 }));
 
 // Database connection
@@ -69,6 +71,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
+
 // Middleware to protect routes
 const requireAuth = (req, res, next) => {
   if (req.session && req.session.userId) {
@@ -88,19 +91,26 @@ app.get('/check-session', (req, res) => {
 });
 
 // Get a list of users
-app.get('/users', async (req, res) => {
+app.get('/users/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
   try {
-    const [results] = await db.execute('SELECT id, email FROM users');
-    res.json(results);
+    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).send({ message: 'User not found' });
+    }
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Error fetching users' });
+    console.error('Error fetching user profile:', error);
+    res.status(500).send({ error: 'Error fetching user profile' });
   }
 });
 
+
 // Create a new post (protected route)
 app.post('/posts', requireAuth, async (req, res) => {
-  const { userId, pictureUrl, likes = 0 } = req.body;
+  const { pictureUrl, likes = 0 } = req.body;
+  const userId = req.session.userId; // Get userId from session
 
   try {
     const [result] = await db.execute('INSERT INTO posts (userId, pictureUrl, likes) VALUES (?, ?, ?)', [userId, pictureUrl, likes]);
@@ -112,8 +122,9 @@ app.post('/posts', requireAuth, async (req, res) => {
   }
 });
 
+
 // Delete a post
-app.delete('/posts/:id', async (req, res) => {
+app.delete('/posts/:id', requireAuth, async (req, res) => {
   const postId = req.params.id;
 
   try {
@@ -129,6 +140,7 @@ app.delete('/posts/:id', async (req, res) => {
     res.status(500).json({ error: 'Error deleting post' });
   }
 });
+
 
 // Get a list of posts with comments
 app.get('/posts', async (req, res) => {
@@ -186,6 +198,52 @@ app.post('/posts/:id/comment', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Error adding comment' });
   }
 });
+// Search users by email
+app.get('/search-users', async (req, res) => {
+  const { query } = req.query;
+  
+  if (!query) {
+    return res.status(400).send({ message: 'Query parameter is required' });
+  }
+  
+  try {
+    const [results] = await db.execute('SELECT id, email FROM users WHERE email LIKE ?', [`%${query}%`]);
+    res.json(results);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Error searching users' });
+  }
+});
+app.get('/users/me', requireAuth, async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [req.session.userId]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).send({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).send({ error: 'Error fetching user profile' });
+  }
+});
+
+// Update user profile
+app.get('/users/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.query("SELECT id, email, username FROM users WHERE id = ?", [id]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).send({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).send({ error: 'Error fetching user profile' });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {

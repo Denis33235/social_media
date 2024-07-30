@@ -12,11 +12,36 @@ const Navbar: React.FC = () => {
           <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Flowbite</span>
         </Link>
         <div className="flex items-center space-x-8 rtl:space-x-reverse">
-          <Link to="/login" className="text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400">
+          <Link
+            to="/"
+            className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/' ? 'font-bold' : ''}`}
+          >
+            Home
+          </Link>
+          <Link
+            to="/search-users"
+            className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/search-users' ? 'font-bold' : ''}`}
+          >
+            Search Users
+          </Link>
+          <Link
+            to="/profile"
+            className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/profile' ? 'font-bold' : ''}`}
+          >
+            Profile
+          </Link>
+          <Link
+            to="/login"
+            className={`text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400 ${location.pathname === '/login' ? 'font-bold' : ''}`}
+          >
             Login
           </Link>
           {location.pathname === '/login' && (
-            <Link to="/register" className="text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400">
+            <Link
+              to="/register"
+              className="text-slate-900 hover:text-slate-700 dark:text-slate-200 dark:hover:text-slate-400"
+            >
+              Register
             </Link>
           )}
         </div>
